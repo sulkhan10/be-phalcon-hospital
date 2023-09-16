@@ -7,14 +7,14 @@ class IndexController extends Controller
 {
     public function indexAction()
     {
-        $users = Patient::find();
+        $patients = Patient::find();
         $response = array(
             'status' => array(
                 'code' => 200,
                 'response' => 'success',
                 'message' => 'Example of success get data'
             ),
-            'result' => $users->toArray()
+            'result' => $patients->toArray()
         );
         
         return $this->response->setJsonContent($response);
@@ -22,23 +22,59 @@ class IndexController extends Controller
 
     public function createAction()
     {
-        $user = new Patient();
-        $user->name = $this->request->getPost('name');
-        $user->sex = $this->request->getPost('sex');
-        $user->phone = $this->request->getPost('phone');
-        $user->address = $this->request->getPost('address');
-        $user->nik = $this->request->getPost('nik');
-        $user->religion = $this->request->getPost('religion');
+        $nik = $this->request->getPost('nik');
+
+        // Check if a patient with the same 'nik' already exists
+        $existingPatient = Patient::findFirst([
+            'conditions' => 'nik = :nik:',
+            'bind' => ['nik' => $nik],
+        ]);
+    
+        if ($existingPatient) {
+            $response = [
+                'status' => [
+                    'code' => 409,
+                    'response' => 'Conflict',
+                    'message' => 'A patient with the same NIK already exists.',
+                ],
+            ];
+            $this->response->setJsonContent($response);
+            $this->response->setStatusCode(409, 'Conflict');
+            return $this->response;
+        }
+        $patient = new Patient();
+        $patient->name = $this->request->getPost('name');
+        $sex = $this->request->getPost('sex');
+    
+        // Validate 'sex' against allowed ENUM values
+        $allowedSexValues = ["Male", "Female", "Other"];
+        if (!in_array($sex, $allowedSexValues)) {
+            $response = [
+                'status' => [
+                    'code' => 400,
+                    'response' => 'Bad Request',
+                    'message' => 'Invalid value for the "sex" field. Allowed values are: ' . implode(', ', $allowedSexValues) . '.',
+                ],
+            ];
+            $this->response->setJsonContent($response);
+            $this->response->setStatusCode(400, 'Bad Request');
+            return $this->response;
+        }
+        $patient->sex = $sex;
+        $patient->phone = $this->request->getPost('phone');
+        $patient->address = $this->request->getPost('address');
+        $patient->nik = $nik; // Assign 'nik' from the request
+        $patient->religion = $this->request->getPost('religion');
      
 
-        if ($user->save()) {
+        if ($patient->save()) {
             $response = array(
                 'status' => array(
                     'code' => 201,
                     'response' => 'Created',
                     'message' => 'Example of success create data'
                 ),
-                'result' => $user
+                'result' => $patient
             );
             $this->response->setJsonContent($response);
             $this->response->setStatusCode(201, 'Created');
@@ -49,7 +85,7 @@ class IndexController extends Controller
                     'response' => 'Conflict',
                     'message' => 'Example of error conflict create data'
                 ),
-                'errors' => $user->getMessages()
+                'errors' => $patient->getMessages()
             );
             $this->response->setJsonContent($response);
             $this->response->setStatusCode(409, 'Conflict');
@@ -59,9 +95,9 @@ class IndexController extends Controller
 
     public function showAction($id)
     {
-        $user = Patient::findFirst($id);
+        $patient = Patient::findFirst($id);
 
-        if (!$user) {
+        if (!$patient) {
             $response = array(
                 'status' => array(
                     'code' => 404,
@@ -80,7 +116,7 @@ class IndexController extends Controller
                 'response' => 'success',
                 'message' => 'Example of success get detail data'
             ),
-            'result' => $user
+            'result' => $patient
         );
         $this->response->setJsonContent($response);
         return $this->response;
@@ -88,16 +124,16 @@ class IndexController extends Controller
 
     public function updateAction($id)
     {
-        $user = Patient::findFirst($id);
+        $patient = Patient::findFirst($id);
 
-        if ($user) {
-            $user->name = $this->request->getPut('name');
-            $user->sex = $this->request->getPut('sex');
-            $user->phone = $this->request->getPut('phone');
-            $user->address = $this->request->getPut('address');
-            $user->nik = $this->request->getPut('nik');
-            $user->religion = $this->request->getPut('religion');
-            if ($user->save()) {
+        if ($patient) {
+            $patient->name = $this->request->getPut('name');
+            $patient->sex = $this->request->getPut('sex');
+            $patient->phone = $this->request->getPut('phone');
+            $patient->address = $this->request->getPut('address');
+            $patient->nik = $this->request->getPut('nik');
+            $patient->religion = $this->request->getPut('religion');
+            if ($patient->save()) {
                 $response = array(
                     'status' => array(
                         'code' => 200,
@@ -132,10 +168,10 @@ class IndexController extends Controller
     }
     public function deleteAction($id)
 {
-    $user = Patient::findFirst($id);
+    $patient = Patient::findFirst($id);
 
-    if ($user) {
-        if ($user->delete()) {
+    if ($patient) {
+        if ($patient->delete()) {
             $response = array(
                 'status' => array(
                     'code' => 204,
@@ -152,7 +188,7 @@ class IndexController extends Controller
                     'response' => 'Conflict',
                     'message' => 'Example of error conflict delete data'
                 ),
-                'errors' => $user->getMessages()
+                'errors' => $patient->getMessages()
             );
             // $this->response->setStatusCode(409, 'Conflict');
             return $this->response->setJsonContent($response);
