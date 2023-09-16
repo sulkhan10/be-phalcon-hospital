@@ -16,7 +16,7 @@ class IndexController extends Controller
             ),
             'result' => $patients->toArray()
         );
-        
+
         return $this->response->setJsonContent($response);
     }
 
@@ -29,7 +29,7 @@ class IndexController extends Controller
             'conditions' => 'nik = :nik:',
             'bind' => ['nik' => $nik],
         ]);
-    
+
         if ($existingPatient) {
             $response = [
                 'status' => [
@@ -45,7 +45,7 @@ class IndexController extends Controller
         $patient = new Patient();
         $patient->name = $this->request->getPost('name');
         $sex = $this->request->getPost('sex');
-    
+
         // Validate 'sex' against allowed ENUM values
         $allowedSexValues = ["Male", "Female", "Other"];
         if (!in_array($sex, $allowedSexValues)) {
@@ -65,7 +65,7 @@ class IndexController extends Controller
         $patient->address = $this->request->getPost('address');
         $patient->nik = $nik; // Assign 'nik' from the request
         $patient->religion = $this->request->getPost('religion');
-     
+
 
         if ($patient->save()) {
             $response = array(
@@ -128,7 +128,24 @@ class IndexController extends Controller
 
         if ($patient) {
             $patient->name = $this->request->getPut('name');
-            $patient->sex = $this->request->getPut('sex');
+            $sex = $this->request->getPut('sex');
+
+            // Validate 'sex' against allowed ENUM values
+            $allowedSexValues = ["Male", "Female", "Other"];
+            if (!in_array($sex, $allowedSexValues)) {
+                $response = [
+                    'status' => [
+                        'code' => 400,
+                        'response' => 'Bad Request',
+                        'message' => 'Invalid value for the "sex" field. Allowed values are: ' . implode(', ', $allowedSexValues) . '.',
+                    ],
+                ];
+                $this->response->setJsonContent($response);
+                $this->response->setStatusCode(400, 'Bad Request');
+                return $this->response;
+            }
+
+            $patient->sex = $sex;
             $patient->phone = $this->request->getPut('phone');
             $patient->address = $this->request->getPut('address');
             $patient->nik = $this->request->getPut('nik');
@@ -152,7 +169,7 @@ class IndexController extends Controller
                     ),
                 );
                 // $this->response->setStatusCode(409, 'Conflict');
-               return  $this->response->setJsonContent($response);
+                return $this->response->setJsonContent($response);
             }
         } else {
             $response = array(
@@ -167,43 +184,43 @@ class IndexController extends Controller
         }
     }
     public function deleteAction($id)
-{
-    $patient = Patient::findFirst($id);
+    {
+        $patient = Patient::findFirst($id);
 
-    if ($patient) {
-        if ($patient->delete()) {
-            $response = array(
-                'status' => array(
-                    'code' => 204,
-                    'response' => 'success',
-                    'message' => 'Example of success delete data'
-                )
-            );
-            // $this->response->setStatusCode(204, 'No Content');
-            return $this->response->setJsonContent($response);
+        if ($patient) {
+            if ($patient->delete()) {
+                $response = array(
+                    'status' => array(
+                        'code' => 204,
+                        'response' => 'success',
+                        'message' => 'Example of success delete data'
+                    )
+                );
+                // $this->response->setStatusCode(204, 'No Content');
+                return $this->response->setJsonContent($response);
+            } else {
+                $response = array(
+                    'status' => array(
+                        'code' => 409,
+                        'response' => 'Conflict',
+                        'message' => 'Example of error conflict delete data'
+                    ),
+                    'errors' => $patient->getMessages()
+                );
+                // $this->response->setStatusCode(409, 'Conflict');
+                return $this->response->setJsonContent($response);
+            }
         } else {
             $response = array(
                 'status' => array(
-                    'code' => 409,
-                    'response' => 'Conflict',
-                    'message' => 'Example of error conflict delete data'
-                ),
-                'errors' => $patient->getMessages()
+                    'code' => 404,
+                    'response' => 'Not Found',
+                    'message' => 'Example of error data not found'
+                )
             );
-            // $this->response->setStatusCode(409, 'Conflict');
+            $this->response->setStatusCode(404, 'Not Found');
             return $this->response->setJsonContent($response);
         }
-    } else {
-        $response = array(
-            'status' => array(
-                'code' => 404,
-                'response' => 'Not Found',
-                'message' => 'Example of error data not found'
-            )
-        );
-        $this->response->setStatusCode(404, 'Not Found');
-        return $this->response->setJsonContent($response);
     }
-}
 
 }
