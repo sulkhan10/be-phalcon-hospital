@@ -156,7 +156,9 @@ class IndexController extends Controller
                         'code' => 200,
                         'response' => 'success',
                         'message' => 'Example of success update data'
-                    )
+                    ),
+                    'result' => $patient
+
                 );
                 $this->response->setStatusCode(200, 'OK');
                 return $this->response->setJsonContent($response);
